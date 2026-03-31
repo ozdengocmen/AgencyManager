@@ -1,0 +1,112 @@
+1.
+Screen/Route: login screen at localhost
+Role: none
+Language: en
+Viewport: desktop
+Steps to reproduce: connect to app on browser
+Expected: login screen has no logo, no name for the app
+Actual: we need to find a catchy name and logo for the app, display it here.
+Severity (P0/P1/P2): p2
+Issue: 
+
+
+2.
+Screen/Route: Agencies screen / clicking Agencies on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Agencies screen
+Expected: displayed table gets cut off- no scrolling on any axis
+Actual: user should be able to scroll up-down and left-right when viewing the agencies table. 
+Severity (P0/P1/P2): p0
+
+3.
+Screen/Route: Agencies screen / clicking Agencies on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Agencies screen, click the box to select one or more agencies from the list
+Expected: two buttons appear when a selection is made: "generate narratives" and "create visit plan". 
+"Generate Narratives" button goes to Meeting Prep Screen. we need to be consistent on how we refer to "meeting prep"  
+Actual:  -
+Severity (P0/P1/P2): P1
+
+4.
+Screen/Route: Agencies screen / clicking Agencies on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Agencies screen, click on the name of an agency that is listed
+Expected: user should be able to scroll up-down left-right on the dashboard when viewing an agency with "overview","diagnostics", "Meeting Prep", "notes & tasks". 
+Actual: displayed agency dashboard gets cut off no scrolling on any axis
+Severity (P0/P1/P2): P0
+
+5.
+Screen/Route: Daily Plan screen / clicking "Daily Plan" on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Daily Plan screen, scroll the mouse
+Expected:  should be able to scroll up-down when viewing the screen
+Actual: screen is cut off, cannot scroll up-down. 
+Severity (P0/P1/P2): P0
+
+6.
+Screen/Route: Daily Plan screen / clicking "Daily Plan" on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Daily Plan screen, click "add to plan" button on an agency listed in candidate pool
+Expected: user should be able to remove selected agencies from "Today's Plan" section.
+Actual: once an agency is added to plan, there is no button to remove it. 
+Severity (P0/P1/P2): P0
+
+7.
+Screen/Route: Daily Plan screen / clicking "Daily Plan" on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Daily Plan screen
+Expected: user should be able to clearly see and follow the day's plan, and what they should do.
+Actual: "Today's Plan" section and "Visit Details" section convey useful information, but it is crammed and crowded. User will have a hard time to follow what is happening
+Severity (P0/P1/P2): P1
+
+8.
+Screen/Route: Map & Clusters screen / clicking "Map & Clusters" on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Map & Clusters screen
+Expected: user should be able to see all of his agencies and daily planned agencies on the map. they should be able to change selections, create other daily clusters by running clustering, and review their visit route (a bird's eye diagram of ordered route with arrows would suffice). They should be able to update their daily visitation optimized route by clicking an agency and selecting "visited" to take it off the route. 
+Actual: no map is displayed (a free map service can be placed here). Clicking on agency points does nothing. Legend is tier based. 
+Severity (P0/P1/P2): P0
+
+9.
+Screen/Route: Meeting Prep (AI) screen / clicking Meeting Prep (AI) on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Meeting Prep (AI) screen, select one or more agencies, click Generate button.
+Expected: user should be able to scroll up-down left-right on the on the screen.
+Actual: screen gets cut off on the bottom and on the right.
+Severity (P0/P1/P2): P0
+
+10.
+Screen/Route: Tasks & Follow-ups screen / clicking Tasks & Follow-ups screen on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Tasks & Follow-ups screen screen, select one or more agencies, click Generate button.
+Expected: user should be able to scroll up-down left-right on the on the screen.
+Actual: screen gets cut off on the bottom and on the right.
+Severity (P0/P1/P2): P0
+
+11.
+Screen/Route: Tasks & Follow-ups screen / clicking Tasks & Follow-ups screen on the left menu
+Role: salesperson
+Language: en
+Viewport: desktop
+Steps to reproduce: open Tasks & Follow-ups screen screen, click "Create Task" button.
+Expected: a pop up screen should open to allow user to select an agency, write an action and choose a due date, priority and save a created task; or select and remove previously created tasks.
+Actual: "Create task" button adds a predetermined task, with no ability to edit it. .
+Severity (P0/P1/P2): P0
