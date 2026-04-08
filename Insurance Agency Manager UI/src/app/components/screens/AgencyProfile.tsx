@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, useSearchParams } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -33,7 +33,9 @@ export function AgencyProfile() {
   const { id } = useParams<{ id: string }>();
   const agency = mockAgencies.find(a => a.agency_id === id);
   const kpis = agency ? mockKPIs[agency.agency_id] : null;
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "overview";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [narrative, setNarrative] = useState("");
 
   if (!agency || !kpis) {

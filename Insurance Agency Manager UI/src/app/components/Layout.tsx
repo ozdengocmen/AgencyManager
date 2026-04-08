@@ -1,11 +1,11 @@
 import { Outlet, Link, useLocation } from "react-router";
-import { 
-  LayoutDashboard, 
-  Building2, 
-  CalendarDays, 
-  Map, 
-  Sparkles, 
-  CheckSquare, 
+import {
+  LayoutDashboard,
+  Building2,
+  CalendarDays,
+  Map,
+  Sparkles,
+  CheckSquare,
   Settings,
   MessageSquare
 } from "lucide-react";
@@ -21,7 +21,7 @@ const navigation = [
   { name: "Daily Plan", href: "/app/daily-plan", icon: CalendarDays },
   { name: "Map & Clusters", href: "/app/map-clusters", icon: Map },
   { name: "Meeting Prep (AI)", href: "/app/meeting-prep", icon: Sparkles },
-  { name: "Tasks & Follow-ups", href: "/app/tasks", icon: CheckSquare },
+  // { name: "Tasks & Follow-ups", href: "/app/tasks", icon: CheckSquare },
   { name: "Settings", href: "/app/settings", icon: Settings },
 ];
 
@@ -37,13 +37,13 @@ export function Layout() {
           <h1 className="font-semibold text-xl">Agency Portfolio</h1>
           <p className="text-slate-400 text-sm mt-1">Assistant</p>
         </div>
-        
+
         <ScrollArea className="flex-1 px-3 py-4">
           <nav className="space-y-1">
             {navigation.map((item) => {
-              const isActive = location.pathname === item.href || 
+              const isActive = location.pathname === item.href ||
                 (item.href !== "/app" && location.pathname.startsWith(item.href));
-              
+
               return (
                 <Link
                   key={item.name}
@@ -83,7 +83,7 @@ export function Layout() {
 
       {/* AI Assistant Widget */}
       <AIAssistant isOpen={showAI} onClose={() => setShowAI(false)} />
-      
+
       {!showAI && (
         <Button
           onClick={() => setShowAI(true)}

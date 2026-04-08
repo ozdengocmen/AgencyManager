@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -16,7 +17,11 @@ import { Sparkles, FileText, Download } from "lucide-react";
 import { mockAgencies, mockKPIs, mockBenchmarks } from "../../data/mockData";
 
 export function MeetingPrep() {
-  const [selectedAgencies, setSelectedAgencies] = useState<Set<string>>(new Set());
+  const [searchParams] = useSearchParams();
+  const initialAgencyId = searchParams.get("agencyId");
+  const [selectedAgencies, setSelectedAgencies] = useState<Set<string>>(
+    new Set(initialAgencyId ? [initialAgencyId] : [])
+  );
   const [template, setTemplate] = useState("standard");
   const [tone, setTone] = useState("consultative");
   const [length, setLength] = useState("medium");

@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Search, GripVertical, Sparkles, MapPin, Clock, Target } from "lucide-react";
+import { useNavigate } from "react-router";
 import { mockAgencies, mockKPIs, mockDailyPlan } from "../../data/mockData";
 
 interface VisitCardProps {
@@ -33,6 +34,7 @@ interface VisitCardProps {
 }
 
 function VisitCard({ visit, index, moveVisit, onSelect, isSelected }: VisitCardProps) {
+  const navigate = useNavigate();
   const agency = mockAgencies.find(a => a.agency_id === visit.agency_id)!;
   const kpis = mockKPIs[visit.agency_id];
 
@@ -102,7 +104,15 @@ function VisitCard({ visit, index, moveVisit, onSelect, isSelected }: VisitCardP
                 </span>
               </div>
 
-              <Button variant="ghost" size="sm" className="mt-2 w-full">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mt-2 w-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/app/agencies/${agency.agency_id}?tab=meeting-prep`);
+                }}
+              >
                 <Sparkles className="w-4 h-4 mr-2" />
                 Generate Prep
               </Button>
@@ -115,6 +125,7 @@ function VisitCard({ visit, index, moveVisit, onSelect, isSelected }: VisitCardP
 }
 
 function DailyPlanContent() {
+  const navigate = useNavigate();
   const [visits, setVisits] = useState(mockDailyPlan);
   const [selectedVisit, setSelectedVisit] = useState<string | null>(visits[0]?.id || null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -133,19 +144,19 @@ function DailyPlanContent() {
 
   const filteredCandidates = candidateAgencies.filter(agency => {
     const kpis = mockKPIs[agency.agency_id];
-    
+
     if (searchQuery && !agency.agency_name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-    
+
     if (filterPreset === "renewal-risk" && !kpis.renewal_risk_flag) {
       return false;
     }
-    
+
     if (filterPreset === "high-growth" && kpis.overall_health_score < 80) {
       return false;
     }
-    
+
     return true;
   });
 
@@ -170,7 +181,7 @@ function DailyPlanContent() {
       <div className="w-80 border-r bg-white flex flex-col">
         <div className="p-4 border-b">
           <h3 className="font-semibold text-slate-900 mb-3">Candidate Pool</h3>
-          
+
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
@@ -213,9 +224,9 @@ function DailyPlanContent() {
                     {kpis.renewal_risk_flag && (
                       <Badge variant="destructive" className="text-xs mb-2">Risk</Badge>
                     )}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="w-full"
                       onClick={() => addToVisits(agency.agency_id)}
                     >
@@ -303,28 +314,31 @@ function DailyPlanContent() {
                 </Select>
               </div>
 
-              <div>
+              {/* <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">Time Window</label>
                 <Input defaultValue={selectedVisitData.time_window} />
-              </div>
+              </div> */}
 
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">Notes</label>
-                <Textarea 
-                  placeholder="Add notes for this visit..." 
+                <Textarea
+                  placeholder="Add notes for this visit..."
                   defaultValue={selectedVisitData.notes}
                   rows={4}
                 />
               </div>
 
               <div>
-                <Button className="w-full">
+                <Button 
+                  className="w-full"
+                  onClick={() => navigate(`/app/agencies/${selectedAgency.agency_id}?tab=meeting-prep`)}
+                >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Generate Meeting Prep
                 </Button>
               </div>
 
-              <div className="border-t pt-4">
+              {/* <div className="border-t pt-4">
                 <h4 className="font-semibold text-slate-900 mb-2">Checklist</h4>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-sm">
@@ -340,9 +354,9 @@ function DailyPlanContent() {
                     Review last meeting notes
                   </label>
                 </div>
-              </div>
+              </div> */}
 
-              <div className="border-t pt-4">
+              {/* <div className="border-t pt-4">
                 <h4 className="font-semibold text-slate-900 mb-2">After Visit</h4>
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-1 block">Outcome</label>
@@ -357,7 +371,7 @@ function DailyPlanContent() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
+              </div> */}
             </div>
           </ScrollArea>
         ) : (
