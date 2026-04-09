@@ -14,6 +14,7 @@ import type { Task } from "../../../data/mockData";
 import { useI18n } from "../../../i18n";
 import { useAppState } from "../../../state";
 import { AIInteractionShell, type AIInteractionTrace } from "../../ai/AIInteractionShell";
+import { ContactClosureCard } from "./ContactClosureCard";
 
 interface AgencyNotesTasksPanelProps {
   agencyId: string;
@@ -158,6 +159,8 @@ export function AgencyNotesTasksPanel({ agencyId, agencyName }: AgencyNotesTasks
 
   return (
     <div className="space-y-4">
+      <ContactClosureCard agencyId={agencyId} />
+
       <Card>
         <CardHeader>
           <CardTitle>{agencyCopy.meetingNarrativeBuilder}</CardTitle>

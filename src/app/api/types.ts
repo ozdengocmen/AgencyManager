@@ -287,6 +287,89 @@ export interface MeetingOutcomeRecord extends Required<MeetingOutcomeLogRequest>
   created_at: string;
 }
 
+export type ContactClosureInputMode = "manual" | "speech";
+
+export interface ContactClosureValidationRequest {
+  agency_id: string;
+  contact_reason: string;
+  input_mode: ContactClosureInputMode;
+  raw_note: string;
+}
+
+export interface ContactClosureDepartmentNotes {
+  technical: string[];
+  collections: string[];
+  claims: string[];
+}
+
+export interface ContactClosureValidationResult {
+  is_valid: boolean;
+  quality_score: number;
+  rejection_reasons: string[];
+  normalized_note: string;
+  summary: string;
+  key_points: string[];
+  action_items: string[];
+  next_steps: string[];
+  topics: string[];
+  department_notes: ContactClosureDepartmentNotes;
+  validator_version: string;
+  provider: "openai" | "local-fallback";
+  model: string;
+  warnings: string[];
+}
+
+export interface ContactClosureCreateRequest extends ContactClosureValidationRequest {}
+
+export interface ContactClosureDetail {
+  closure_id: string;
+  user_id: UserRole;
+  agency_id: string;
+  contact_reason: string;
+  input_mode: ContactClosureInputMode;
+  raw_note: string;
+  normalized_note: string;
+  summary: string;
+  key_points: string[];
+  action_items: string[];
+  next_steps: string[];
+  topics: string[];
+  department_notes: ContactClosureDepartmentNotes;
+  quality_score: number;
+  validation_status: "valid" | "invalid";
+  validator_version: string;
+  created_at: string;
+  validation_result: ContactClosureValidationResult;
+}
+
+export interface SystemAISettingsDetail {
+  provider: "openai";
+  enabled: boolean;
+  model: string;
+  base_url: string | null;
+  api_key: string | null;
+  has_api_key: boolean;
+  masked_api_key: string | null;
+  updated_at: string;
+  updated_by: UserRole | null;
+}
+
+export interface SystemAISettingsUpdateRequest {
+  provider: "openai";
+  enabled: boolean;
+  model: string;
+  base_url?: string | null;
+  api_key?: string | null;
+  retain_existing_api_key?: boolean;
+  clear_api_key?: boolean;
+}
+
+export interface SystemAIModelListResponse {
+  items: string[];
+  provider: "openai";
+  source: "live" | "fallback";
+}
+
 export interface TaskCreateInput {
   agency_id: string;
   assignee: UserRole;

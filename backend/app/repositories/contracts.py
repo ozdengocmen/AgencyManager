@@ -17,8 +17,10 @@ from backend.app.schemas.persistence import (
     TaskRecord,
 )
 from backend.app.schemas.workflows import (
+    ContactClosureDetail,
     DailyPlanDetail,
     MeetingPrepDetail,
+    SystemAISettingsDetail,
     TaskUpdateRequest,
     UserSettingsResponse,
 )
@@ -101,6 +103,33 @@ class MeetingPrepRepository(Protocol):
 class MeetingOutcomeRepository(Protocol):
     def log_meeting_outcome(self, payload: MeetingOutcomeLogRequest) -> MeetingOutcomeRecord: ...
 
+    def create_contact_closure(
+        self,
+        *,
+        user_id: str,
+        agency_id: str,
+        contact_reason: str,
+        input_mode: str,
+        raw_note: str,
+        normalized_note: str,
+        summary: str,
+        key_points: list[str],
+        action_items: list[str],
+        next_steps: list[str],
+        topics: list[str],
+        department_notes: dict[str, list[str]],
+        quality_score: int,
+        validation_status: str,
+        validator_version: str,
+    ) -> ContactClosureDetail: ...
+
+    def list_contact_closures(
+        self,
+        *,
+        user_id: str,
+        agency_id: str | None = None,
+    ) -> list[ContactClosureDetail]: ...
+
 
 class TaskRepository(Protocol):
     def create_tasks(
@@ -135,6 +164,19 @@ class SettingsRepository(Protocol):
     def get_settings(self, user_id: str) -> UserSettingsResponse: ...
 
     def update_settings(self, user_id: str, settings_json: dict[str, object]) -> UserSettingsResponse: ...
+
+    def get_system_ai_settings(self) -> SystemAISettingsDetail | None: ...
+
+    def upsert_system_ai_settings(
+        self,
+        *,
+        provider: str,
+        enabled: bool,
+        model: str,
+        base_url: str | None,
+        api_key: str | None,
+        updated_by: str,
+    ) -> SystemAISettingsDetail: ...
 
 
 class AgentTraceRepository(Protocol):

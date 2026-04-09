@@ -13,7 +13,10 @@ from backend.app.api.dependencies import (
     resolve_scoped_user,
     scoped_user_query,
 )
+from backend.app.core.config import get_settings as get_app_settings
 from backend.app.repositories import RepositoryGateway
+from backend.app.services.contact_closure import validate_contact_closure_note
+from backend.app.services.ai_settings import build_system_ai_settings_detail, list_available_models
 from backend.app.schemas.persistence import (
     MeetingOutcomeLogRequest,
     MeetingOutcomeRecord,
@@ -24,6 +27,11 @@ from backend.app.schemas.persistence import (
     TaskRecord,
 )
 from backend.app.schemas.workflows import (
+    ContactClosureCreateRequest,
+    ContactClosureDetail,
+    ContactClosureListResponse,
+    ContactClosureValidationRequest,
+    ContactClosureValidationResult,
     DailyPlanCreateRequest,
     DailyPlanDetail,
     DailyPlanUpdateRequest,
@@ -31,6 +39,9 @@ from backend.app.schemas.workflows import (
     MeetingPrepDetail,
     MeetingPrepListResponse,
     MeetingPrepUpdateRequest,
+    SystemAISettingsDetail,
+    SystemAIModelListResponse,
+    SystemAISettingsUpdateRequest,
     TaskBulkFromNarrativeRequest,
     TaskBulkFromNarrativeResponse,
     TaskUpdateRequest,
@@ -39,6 +50,135 @@ from backend.app.schemas.workflows import (
 )
 
 router = APIRouter()
+
+
+@router.get("/system/ai-settings", response_model=SystemAISettingsDetail)
+def get_system_ai_settings(
+    context: AuthContext = Depends(get_auth_context),
+    repository: RepositoryGateway = Depends(get_repository),
+) -> SystemAISettingsDetail:
+    if context.user.role != "manager":
+        raise HTTPException(status_code=403, detail="Manager access required")
+
+    current = repository.get_system_ai_settings()
+    if current:
+        return current
+
+    return build_system_ai_settings_detail(
+        provider="openai",
+        enabled=True,
+        model="gpt-4.1-mini",
+        base_url=None,
+        api_key=None,
+        updated_at=context.session.created_at,
+        updated_by=context.user.user_id,
+    )
+
+
+@router.put("/system/ai-settings", response_model=SystemAISettingsDetail)
+def update_system_ai_settings(
+    payload: SystemAISettingsUpdateRequest,
+    context: AuthContext = Depends(get_auth_context),
+    repository: RepositoryGateway = Depends(get_repository),
+) -> SystemAISettingsDetail:
+    if context.user.role != "manager":
+        raise HTTPException(status_code=403, detail="Manager access required")
+
+    existing = repository.get_system_ai_settings()
+    next_api_key = payload.api_key.strip() if isinstance(payload.api_key, str) else None
+    if payload.clear_api_key:
+        next_api_key = None
+    elif payload.retain_existing_api_key and not next_api_key:
+        next_api_key = existing.api_key if existing and existing.has_api_key else None
+
+    return repository.upsert_system_ai_settings(
+        provider=payload.provider,
+        enabled=payload.enabled,
+        model=payload.model.strip(),
+        base_url=payload.base_url.strip() if isinstance(payload.base_url, str) and payload.base_url.strip() else None,
+        api_key=next_api_key,
+        updated_by=context.user.user_id,
+    )
+
+
+@router.get("/system/ai-models", response_model=SystemAIModelListResponse)
+def get_system_ai_models(
+    context: AuthContext = Depends(get_auth_context),
+    repository: RepositoryGateway = Depends(get_repository),
+) -> SystemAIModelListResponse:
+    if context.user.role != "manager":
+        raise HTTPException(status_code=403, detail="Manager access required")
+
+    return list_available_models(settings=get_app_settings(), repository=repository)
+
+
+@router.post("/contact-closures/validate", response_model=ContactClosureValidationResult)
+def validate_contact_closure(
+    payload: ContactClosureValidationRequest,
+    context: AuthContext = Depends(get_auth_context),
+    repository: RepositoryGateway = Depends(get_repository),
+) -> ContactClosureValidationResult:
+    del context
+    return ContactClosureValidationResult.model_validate(
+        validate_contact_closure_note(
+            raw_note=payload.raw_note,
+            contact_reason=payload.contact_reason,
+            input_mode=payload.input_mode,
+            settings=get_app_settings(),
+            repository=repository,
+        )
+    )
+
+
+@router.post("/contact-closures", response_model=ContactClosureDetail)
+def create_contact_closure(
+    payload: ContactClosureCreateRequest,
+    user_id: str | None = Depends(scoped_user_query),
+    context: AuthContext = Depends(get_auth_context),
+    repository: RepositoryGateway = Depends(get_repository),
+) -> ContactClosureDetail:
+    target_user = resolve_scoped_user(context, user_id)
+    validation = ContactClosureValidationResult.model_validate(
+        validate_contact_closure_note(
+            raw_note=payload.raw_note,
+            contact_reason=payload.contact_reason,
+            input_mode=payload.input_mode,
+            settings=get_app_settings(),
+            repository=repository,
+        )
+    )
+    if not validation.is_valid:
+        raise HTTPException(status_code=422, detail="Contact closure note did not pass validation")
+
+    return repository.create_contact_closure(
+        user_id=target_user,
+        agency_id=payload.agency_id,
+        contact_reason=payload.contact_reason,
+        input_mode=payload.input_mode,
+        raw_note=payload.raw_note,
+        normalized_note=validation.normalized_note,
+        summary=validation.summary,
+        key_points=validation.key_points,
+        action_items=validation.action_items,
+        next_steps=validation.next_steps,
+        topics=validation.topics,
+        department_notes=validation.department_notes.model_dump(),
+        quality_score=validation.quality_score,
+        validation_status="valid",
+        validator_version=validation.validator_version,
+    )
+
+
+@router.get("/contact-closures", response_model=ContactClosureListResponse)
+def list_contact_closures(
+    agency_id: str | None = Query(default=None),
+    user_id: str | None = Depends(scoped_user_query),
+    context: AuthContext = Depends(get_auth_context),
+    repository: RepositoryGateway = Depends(get_repository),
+) -> ContactClosureListResponse:
+    target_user = resolve_scoped_user(context, user_id)
+    items = repository.list_contact_closures(user_id=target_user, agency_id=agency_id)
+    return ContactClosureListResponse(items=items, total=len(items))
 
 
 @router.post("/daily-plans", response_model=DailyPlanDetail)

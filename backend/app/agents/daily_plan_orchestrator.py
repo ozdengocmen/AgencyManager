@@ -21,6 +21,7 @@ from backend.app.services.agent_trace import (
     Timer,
     to_trace_payload,
 )
+from backend.app.services.ai_settings import resolve_ai_settings
 from backend.app.services.structured_outputs import (
     get_responses_api_format,
     validate_contract_output,
@@ -54,8 +55,9 @@ class DailyPlanOrchestrator:
 
     def generate(self, request: DailyPlanRequest) -> OrchestratorResult:
         warnings: list[str] = []
-        initial_provider = "openai" if self._settings.openai_api_key else "local-fallback"
-        initial_model = self._settings.openai_model if self._settings.openai_api_key else "local-fallback-v1"
+        runtime = resolve_ai_settings(settings=self._settings)
+        initial_provider = "openai" if runtime.enabled and runtime.api_key else "local-fallback"
+        initial_model = runtime.model if runtime.enabled and runtime.api_key else "local-fallback-v1"
         trace = AgentTraceRecorder(
             repository=None,
             agent_name="daily-plan",
@@ -64,10 +66,10 @@ class DailyPlanOrchestrator:
             model=initial_model,
         )
 
-        if self._settings.openai_api_key:
+        if runtime.enabled and runtime.api_key:
             try:
                 tool_sequence: list[str]
-                plan, tool_sequence, response_id = self._generate_with_openai(request, trace)
+                plan, tool_sequence, response_id = self._generate_with_openai(request, trace, runtime)
                 self._enforce_tool_policy(tool_sequence)
                 tools_used = _unique_tools(tool_sequence)
                 evidence_map = self._build_evidence_map()
@@ -75,7 +77,7 @@ class DailyPlanOrchestrator:
                 return OrchestratorResult(
                     plan=plan,
                     provider="openai",
-                    model=self._settings.openai_model,
+                    model=runtime.model,
                     tools_used=tools_used,
                     warnings=warnings,
                     run_id=trace.run_id,
@@ -134,20 +136,21 @@ class DailyPlanOrchestrator:
         self,
         request: DailyPlanRequest,
         trace: AgentTraceRecorder,
+        runtime,
     ) -> tuple[DailyVisitPlan, list[str], str | None]:
         client = OpenAI(
-            api_key=self._settings.openai_api_key,
-            base_url=self._settings.openai_base_url or None,
+            api_key=runtime.api_key,
+            base_url=runtime.base_url or None,
         )
         tools_used: list[str] = []
         trace.add_event(
             event_type="model_call_start",
             status="ok",
-            message=f"Calling OpenAI Responses API with model={self._settings.openai_model}.",
+            message=f"Calling OpenAI Responses API with model={runtime.model}.",
         )
 
         response = client.responses.create(
-            model=self._settings.openai_model,
+            model=runtime.model,
             input=[
                 {"role": "system", "content": self._system_prompt(request.language)},
                 {"role": "user", "content": self._user_prompt(request)},
@@ -194,7 +197,7 @@ class DailyPlanOrchestrator:
                     raise
 
             response = client.responses.create(
-                model=self._settings.openai_model,
+                model=runtime.model,
                 previous_response_id=self._read(response, "id"),
                 input=call_outputs,
                 tools=self._tool_specs(),

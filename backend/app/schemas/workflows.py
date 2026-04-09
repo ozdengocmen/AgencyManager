@@ -18,6 +18,8 @@ from backend.app.schemas.persistence import (
 
 DailyPlanStatus = Literal["draft", "published"]
 MeetingPrepStatus = Literal["draft", "final"]
+ContactClosureInputMode = Literal["manual", "speech"]
+ContactClosureValidationStatus = Literal["valid", "invalid"]
 
 
 class DailyPlanCreateRequest(BaseModel):
@@ -84,6 +86,87 @@ class MeetingPrepListResponse(BaseModel):
     total: int
 
 
+class ContactClosureDepartmentNotes(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    technical: list[str] = Field(default_factory=list)
+    collections: list[str] = Field(default_factory=list)
+    claims: list[str] = Field(default_factory=list)
+
+
+class ContactClosureAnalysisOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    summary: str
+    key_points: list[str] = Field(default_factory=list)
+    action_items: list[str] = Field(default_factory=list)
+    next_steps: list[str] = Field(default_factory=list)
+    topics: list[str] = Field(default_factory=list)
+    department_notes: ContactClosureDepartmentNotes
+
+
+class ContactClosureValidationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    agency_id: str
+    contact_reason: str
+    input_mode: ContactClosureInputMode
+    raw_note: str
+
+
+class ContactClosureValidationResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    is_valid: bool
+    quality_score: int = Field(ge=0, le=100)
+    rejection_reasons: list[str] = Field(default_factory=list)
+    normalized_note: str
+    summary: str
+    key_points: list[str] = Field(default_factory=list)
+    action_items: list[str] = Field(default_factory=list)
+    next_steps: list[str] = Field(default_factory=list)
+    topics: list[str] = Field(default_factory=list)
+    department_notes: ContactClosureDepartmentNotes
+    validator_version: str
+    provider: Literal["openai", "local-fallback"]
+    model: str
+    warnings: list[str] = Field(default_factory=list)
+
+
+class ContactClosureCreateRequest(ContactClosureValidationRequest):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ContactClosureDetail(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    closure_id: str
+    user_id: UserRole
+    agency_id: str
+    contact_reason: str
+    input_mode: ContactClosureInputMode
+    raw_note: str
+    normalized_note: str
+    summary: str
+    key_points: list[str] = Field(default_factory=list)
+    action_items: list[str] = Field(default_factory=list)
+    next_steps: list[str] = Field(default_factory=list)
+    topics: list[str] = Field(default_factory=list)
+    department_notes: ContactClosureDepartmentNotes
+    quality_score: int = Field(ge=0, le=100)
+    validation_status: ContactClosureValidationStatus
+    validator_version: str
+    created_at: datetime
+    validation_result: ContactClosureValidationResult
+
+
+class ContactClosureListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[ContactClosureDetail]
+    total: int
+
+
 class TaskUpdateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -122,6 +205,40 @@ class UserSettingsUpdateRequest(BaseModel):
     settings_json: dict[str, object]
 
 
+class SystemAISettingsDetail(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider: Literal["openai"]
+    enabled: bool
+    model: str
+    base_url: str | None = None
+    api_key: str | None = None
+    has_api_key: bool
+    masked_api_key: str | None = None
+    updated_at: datetime
+    updated_by: UserRole | None = None
+
+
+class SystemAISettingsUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider: Literal["openai"] = "openai"
+    enabled: bool = True
+    model: str
+    base_url: str | None = None
+    api_key: str | None = None
+    retain_existing_api_key: bool = True
+    clear_api_key: bool = False
+
+
+class SystemAIModelListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[str] = Field(default_factory=list)
+    provider: Literal["openai"]
+    source: Literal["live", "fallback"]
+
+
 class ScopedUserQuery(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -132,10 +249,18 @@ __all__ = [
     "DailyPlanCreateRequest",
     "DailyPlanDetail",
     "DailyPlanUpdateRequest",
+    "ContactClosureCreateRequest",
+    "ContactClosureDetail",
+    "ContactClosureListResponse",
+    "ContactClosureValidationRequest",
+    "ContactClosureValidationResult",
     "MeetingPrepCreateRequest",
     "MeetingPrepDetail",
     "MeetingPrepListResponse",
     "MeetingPrepUpdateRequest",
+    "SystemAISettingsDetail",
+    "SystemAIModelListResponse",
+    "SystemAISettingsUpdateRequest",
     "TaskBulkFromNarrativeRequest",
     "TaskBulkFromNarrativeResponse",
     "TaskCreateInput",

@@ -113,6 +113,29 @@ CREATE TABLE IF NOT EXISTS meeting_outcomes (
 );
 CREATE INDEX IF NOT EXISTS idx_meeting_outcomes_user_agency ON meeting_outcomes (user_id, agency_id);
 
+CREATE TABLE IF NOT EXISTS contact_closures (
+  closure_id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  agency_id TEXT NOT NULL,
+  contact_reason TEXT NOT NULL,
+  input_mode TEXT NOT NULL,
+  raw_note TEXT NOT NULL,
+  normalized_note TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  key_points_json TEXT NOT NULL,
+  action_items_json TEXT NOT NULL,
+  next_steps_json TEXT NOT NULL,
+  topics_json TEXT NOT NULL,
+  department_notes_json TEXT NOT NULL,
+  quality_score INTEGER NOT NULL,
+  validation_status TEXT NOT NULL,
+  validator_version TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users (user_id),
+  FOREIGN KEY (agency_id) REFERENCES agencies (agency_id)
+);
+CREATE INDEX IF NOT EXISTS idx_contact_closures_user_agency ON contact_closures (user_id, agency_id, created_at);
+
 CREATE TABLE IF NOT EXISTS tasks (
   task_id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
@@ -139,6 +162,17 @@ CREATE TABLE IF NOT EXISTS user_settings (
   settings_json TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users (user_id)
+);
+
+CREATE TABLE IF NOT EXISTS system_ai_settings (
+  settings_key TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  enabled INTEGER NOT NULL,
+  model TEXT NOT NULL,
+  base_url TEXT,
+  api_key TEXT,
+  updated_at TEXT NOT NULL,
+  updated_by TEXT
 );
 
 CREATE TABLE IF NOT EXISTS agent_runs (

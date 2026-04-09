@@ -24,11 +24,15 @@ from backend.app.schemas.persistence import (
     TaskRecord,
 )
 from backend.app.schemas.workflows import (
+    ContactClosureDetail,
+    ContactClosureValidationResult,
     DailyPlanDetail,
     MeetingPrepDetail,
+    SystemAISettingsDetail,
     TaskUpdateRequest,
     UserSettingsResponse,
 )
+from backend.app.services.ai_settings import build_system_ai_settings_detail
 
 
 class SQLiteRepositoryGateway(RepositoryGateway):
@@ -457,6 +461,95 @@ class SQLiteRepositoryGateway(RepositoryGateway):
             created_at=now,
         )
 
+    def create_contact_closure(
+        self,
+        *,
+        user_id: str,
+        agency_id: str,
+        contact_reason: str,
+        input_mode: str,
+        raw_note: str,
+        normalized_note: str,
+        summary: str,
+        key_points: list[str],
+        action_items: list[str],
+        next_steps: list[str],
+        topics: list[str],
+        department_notes: dict[str, list[str]],
+        quality_score: int,
+        validation_status: str,
+        validator_version: str,
+    ) -> ContactClosureDetail:
+        now = _utc_now()
+        with sqlite_connection(self._settings) as connection:
+            closure_id = _next_prefixed_id(connection, "contact_closures", "closure_id", "CLOSE")
+            connection.execute(
+                """
+                INSERT INTO contact_closures (
+                  closure_id, user_id, agency_id, contact_reason, input_mode, raw_note,
+                  normalized_note, summary, key_points_json, action_items_json, next_steps_json,
+                  topics_json, department_notes_json, quality_score, validation_status,
+                  validator_version, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    closure_id,
+                    user_id,
+                    agency_id,
+                    contact_reason,
+                    input_mode,
+                    raw_note,
+                    normalized_note,
+                    summary,
+                    _to_json(key_points),
+                    _to_json(action_items),
+                    _to_json(next_steps),
+                    _to_json(topics),
+                    _to_json(department_notes),
+                    quality_score,
+                    validation_status,
+                    validator_version,
+                    now.isoformat(),
+                ),
+            )
+            row = connection.execute(
+                "SELECT * FROM contact_closures WHERE closure_id = ?",
+                (closure_id,),
+            ).fetchone()
+
+        if not row:
+            raise ValueError("Failed to create contact closure")
+        return _row_to_contact_closure_detail(row)
+
+    def list_contact_closures(
+        self,
+        *,
+        user_id: str,
+        agency_id: str | None = None,
+    ) -> list[ContactClosureDetail]:
+        where = ["1 = 1"]
+        args: list[Any] = []
+        if user_id != "manager":
+            where.append("user_id = ?")
+            args.append(user_id)
+        if agency_id:
+            where.append("agency_id = ?")
+            args.append(agency_id)
+
+        with sqlite_connection(self._settings) as connection:
+            rows = connection.execute(
+                f"""
+                SELECT *
+                FROM contact_closures
+                WHERE {' AND '.join(where)}
+                ORDER BY created_at DESC
+                LIMIT 20
+                """,
+                tuple(args),
+            ).fetchall()
+
+        return [_row_to_contact_closure_detail(row) for row in rows]
+
     def create_tasks(
         self,
         *,
@@ -650,6 +743,86 @@ class SQLiteRepositoryGateway(RepositoryGateway):
             user_id=cast(Any, row["user_id"]),
             settings_json=_from_json(str(row["settings_json"])),
             updated_at=_to_datetime(str(row["updated_at"])),
+        )
+
+    def get_system_ai_settings(self) -> SystemAISettingsDetail | None:
+        with sqlite_connection(self._settings) as connection:
+            row = connection.execute(
+                """
+                SELECT provider, enabled, model, base_url, api_key, updated_at, updated_by
+                FROM system_ai_settings
+                WHERE settings_key = 'global'
+                """
+            ).fetchone()
+
+        if not row:
+            return None
+
+        return build_system_ai_settings_detail(
+            provider=str(row["provider"]),
+            enabled=bool(row["enabled"]),
+            model=str(row["model"]),
+            base_url=str(row["base_url"]) if row["base_url"] else None,
+            api_key=str(row["api_key"]) if row["api_key"] else None,
+            updated_at=_to_datetime(str(row["updated_at"])),
+            updated_by=str(row["updated_by"]) if row["updated_by"] else None,
+        )
+
+    def upsert_system_ai_settings(
+        self,
+        *,
+        provider: str,
+        enabled: bool,
+        model: str,
+        base_url: str | None,
+        api_key: str | None,
+        updated_by: str,
+    ) -> SystemAISettingsDetail:
+        now = _utc_now().isoformat()
+        with sqlite_connection(self._settings) as connection:
+            connection.execute(
+                """
+                INSERT INTO system_ai_settings (
+                  settings_key, provider, enabled, model, base_url, api_key, updated_at, updated_by
+                ) VALUES ('global', ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(settings_key) DO UPDATE SET
+                  provider = excluded.provider,
+                  enabled = excluded.enabled,
+                  model = excluded.model,
+                  base_url = excluded.base_url,
+                  api_key = excluded.api_key,
+                  updated_at = excluded.updated_at,
+                  updated_by = excluded.updated_by
+                """,
+                (
+                    provider,
+                    1 if enabled else 0,
+                    model,
+                    base_url,
+                    api_key,
+                    now,
+                    updated_by,
+                ),
+            )
+            row = connection.execute(
+                """
+                SELECT provider, enabled, model, base_url, api_key, updated_at, updated_by
+                FROM system_ai_settings
+                WHERE settings_key = 'global'
+                """
+            ).fetchone()
+
+        if not row:
+            raise ValueError("Failed to save system AI settings")
+
+        return build_system_ai_settings_detail(
+            provider=str(row["provider"]),
+            enabled=bool(row["enabled"]),
+            model=str(row["model"]),
+            base_url=str(row["base_url"]) if row["base_url"] else None,
+            api_key=str(row["api_key"]) if row["api_key"] else None,
+            updated_at=_to_datetime(str(row["updated_at"])),
+            updated_by=str(row["updated_by"]) if row["updated_by"] else None,
         )
 
     def update_settings(self, user_id: str, settings_json: dict[str, object]) -> UserSettingsResponse:
@@ -925,6 +1098,54 @@ def _row_to_meeting_prep_detail(row: Any) -> MeetingPrepDetail:
     )
 
 
+def _row_to_contact_closure_detail(row: Any) -> ContactClosureDetail:
+    department_notes = _from_json(str(row["department_notes_json"]))
+    validator_version = str(row["validator_version"])
+    provider = "openai" if validator_version.startswith("openai-") else "local-fallback"
+    model = "persisted-openai" if provider == "openai" else "local-fallback-v1"
+    validation_result = ContactClosureValidationResult(
+        is_valid=str(row["validation_status"]) == "valid",
+        quality_score=int(row["quality_score"]),
+        rejection_reasons=[],
+        normalized_note=str(row["normalized_note"]),
+        summary=str(row["summary"]),
+        key_points=_from_json_list(str(row["key_points_json"])),
+        action_items=_from_json_list(str(row["action_items_json"])),
+        next_steps=_from_json_list(str(row["next_steps_json"])),
+        topics=_from_json_list(str(row["topics_json"])),
+        department_notes={
+            "technical": [str(item) for item in department_notes.get("technical", [])],
+            "collections": [str(item) for item in department_notes.get("collections", [])],
+            "claims": [str(item) for item in department_notes.get("claims", [])],
+        },
+        validator_version=validator_version,
+        provider=provider,
+        model=model,
+        warnings=[],
+    )
+
+    return ContactClosureDetail(
+        closure_id=str(row["closure_id"]),
+        user_id=cast(Any, row["user_id"]),
+        agency_id=str(row["agency_id"]),
+        contact_reason=str(row["contact_reason"]),
+        input_mode=cast(Any, row["input_mode"]),
+        raw_note=str(row["raw_note"]),
+        normalized_note=str(row["normalized_note"]),
+        summary=str(row["summary"]),
+        key_points=_from_json_list(str(row["key_points_json"])),
+        action_items=_from_json_list(str(row["action_items_json"])),
+        next_steps=_from_json_list(str(row["next_steps_json"])),
+        topics=_from_json_list(str(row["topics_json"])),
+        department_notes=validation_result.department_notes,
+        quality_score=int(row["quality_score"]),
+        validation_status=cast(Any, row["validation_status"]),
+        validator_version=validator_version,
+        created_at=_to_datetime(str(row["created_at"])),
+        validation_result=validation_result,
+    )
+
+
 def _to_datetime(value: str) -> datetime:
     return datetime.fromisoformat(value)
 
@@ -941,6 +1162,13 @@ def _from_json(value: str) -> dict[str, object]:
 
 
 def _from_json_list_of_strings(value: str) -> list[str]:
+    loaded = json.loads(value)
+    if not isinstance(loaded, list):
+        return []
+    return [str(item) for item in loaded]
+
+
+def _from_json_list(value: str) -> list[str]:
     loaded = json.loads(value)
     if not isinstance(loaded, list):
         return []

@@ -14,10 +14,12 @@ from backend.app.schemas.agent_outputs import (
     PostMeetingAnalysis,
     TaskList,
 )
+from backend.app.schemas.workflows import ContactClosureAnalysisOutput
 
 ContractName = str
 
 _CONTRACT_MODELS: dict[ContractName, type[BaseModel]] = {
+    "ContactClosureAnalysisOutput": ContactClosureAnalysisOutput,
     "MeetingNarrative": MeetingNarrative,
     "PostMeetingAnalysis": PostMeetingAnalysis,
     "DailyVisitPlan": DailyVisitPlan,
